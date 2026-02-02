@@ -13,7 +13,7 @@ def verify_passwd(plain_passwd,hashed_passwd):
 
 """jwt config"""
 
-JWT_SECRET_KEY=os.getenv("JWT_SECRET_KEY","CHANGE_ME")
+JWT_SECRET_KEY=os.getenv("JWT_SECRET_KEY")
 JWT_ALGORITHM="HS256"
 
 ACCESS_TOKEN_EXPIRE_MINUTES=15
