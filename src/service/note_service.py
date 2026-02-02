@@ -13,9 +13,9 @@ async def create_note(note: dict):
 """Read NOTES ALL"""
 
 
-async def get_notes():
+async def get_notes(user_id):
     notes = []
-    async for doc in database.db.notes.find():
+    async for doc in database.db.notes.find({"user_id":user_id}):
         notes.append(note_serializer(doc))
     return notes
 

@@ -12,3 +12,4 @@ class NoteResponse(BaseModel):
     id:str
     title:str
     content:str
+    user_id:str
