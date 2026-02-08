@@ -5,13 +5,13 @@ from src.model.note import NoteCreate,NoteResponse,NoteUpdate
 from src.service.note_service import create_note,get_note,get_notes,update_note,delete_notes
 from src.data.redis import   redis_client
 import json
-from src.core.rate_limiter import RateLimiter
+from src.core.sliding_rate_limiter import SlidingWindowRateLimiter
 
 router=APIRouter(prefix="/notes",tags=["Notes"])
 
 
 
-@router.post("/",response_model=dict,dependencies=[Depends(RateLimiter.from_config("NOTES_CREATE"))])
+@router.post("/",response_model=dict,dependencies=[Depends(SlidingWindowRateLimiter.from_config("NOTES_CREATE"))])
 async def add_note(note: NoteCreate ,current_user=Depends(get_current_user)):
     user_id = str(current_user["_id"])
     note_data=note.model_dump()
@@ -22,7 +22,7 @@ async def add_note(note: NoteCreate ,current_user=Depends(get_current_user)):
 
     return {"id":note_id}
 
-@router.get("/",response_model=List[NoteResponse],dependencies=[Depends(RateLimiter.from_config("NOTES_LIST"))])
+@router.get("/",response_model=List[NoteResponse],dependencies=[Depends(SlidingWindowRateLimiter.from_config("NOTES_LIST"))])
 async def list_notes(current_user=Depends(get_current_user)):
     user_id=str(current_user["_id"])
     cache_key=f"notes:user:{user_id}"
@@ -70,7 +70,7 @@ async def read_note(note_id:str,current_user=Depends(get_current_user)):
     )
     return note
 
-@router.put("/{note_id",dependencies=[Depends(RateLimiter.from_config("NOTES_UPDATE"))])
+@router.put("/{note_id",dependencies=[Depends(SlidingWindowRateLimiter.from_config("NOTES_UPDATE"))])
 async def edit_note(note_id:str,note:NoteUpdate,current_user=Depends(get_current_user)):
     user_id = str(current_user["_id"])
 
@@ -87,7 +87,7 @@ async def edit_note(note_id:str,note:NoteUpdate,current_user=Depends(get_current
 
     return {"message": "Note updated"}
 
-@router.delete("/{note_id}",dependencies=[Depends(RateLimiter.from_config("NOTES_DELETE"))])
+@router.delete("/{note_id}",dependencies=[Depends(SlidingWindowRateLimiter.from_config("NOTES_DELETE"))])
 async def remove_note(note_id: str,current_user=Depends(get_current_user)):
     user_id = str(current_user["_id"])
 

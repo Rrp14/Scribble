@@ -1,6 +1,6 @@
 from fastapi import APIRouter,Depends
 
-from src.core.rate_limiter import RateLimiter
+from src.core.sliding_rate_limiter import SlidingWindowRateLimiter
 from src.auth.models.user import UserCreate, UserLogin, UserResponse, RefreshTokenRequest, LogoutRequest
 from src.auth.services.user_service import create_user,authenticate_user,refresh_tokens,logout_user
 from src.auth.dependecies import get_current_user
@@ -9,7 +9,7 @@ router=APIRouter(prefix="/auth",tags=["Auth"])
 
 
 
-@router.post("/register",dependencies=[Depends(RateLimiter.from_config("AUTH_REGISTER"))])
+@router.post("/register",dependencies=[Depends(SlidingWindowRateLimiter.from_config("AUTH_REGISTER"))])
 async def register(user:UserCreate):
 
     res=await create_user(
@@ -19,7 +19,7 @@ async def register(user:UserCreate):
 
     return res
 
-@router.post("/login",dependencies=[Depends(RateLimiter.from_config("AUTH_LOGIN"))])
+@router.post("/login",dependencies=[Depends(SlidingWindowRateLimiter.from_config("AUTH_LOGIN"))])
 async def login(user:UserLogin):
     res=await authenticate_user(
         email=user.email,
@@ -35,7 +35,7 @@ async def me(current_user=Depends(get_current_user)):
         "created_at": current_user["created_at"],
     }
 
-@router.post("/refresh",dependencies=[Depends(RateLimiter.from_config("AUTH_REFRESH"))])
+@router.post("/refresh",dependencies=[Depends(SlidingWindowRateLimiter.from_config("AUTH_REFRESH"))])
 async def refresh(data:RefreshTokenRequest):
     return await refresh_tokens(data.refresh_token)
 
