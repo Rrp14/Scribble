@@ -3,7 +3,7 @@ from src.auth.dependecies import get_current_user,get_user_by_id
 from fastapi import APIRouter,HTTPException,Depends
 from src.model.note import NoteCreate,NoteResponse,NoteUpdate
 from src.service.note_service import create_note,get_note,get_notes,update_note,delete_notes
-from src.data.redis import   redis_client
+from src.data.redis_client import   redis_client
 import json
 from src.core.sliding_rate_limiter import SlidingWindowRateLimiter
 

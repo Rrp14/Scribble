@@ -1,6 +1,6 @@
 from fastapi import Request, HTTPException, Depends
 from src.core.rate_limit_config import RATE_LIMITS
-from src.data.redis import redis_client
+from src.data.redis_client import redis_client
 
 
 class RateLimiter:

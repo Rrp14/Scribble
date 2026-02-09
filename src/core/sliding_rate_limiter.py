@@ -4,7 +4,7 @@ import redis
 from fastapi import  Request,HTTPException,Depends
 from redis.utils import pipeline
 from src.core.rate_limit_config import RATE_LIMITS
-from src.data.redis import redis_client
+from src.data.redis_client import redis_client
 
 class SlidingWindowRateLimiter:
     def __init__(self,
