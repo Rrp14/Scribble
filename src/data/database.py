@@ -3,7 +3,12 @@ from pymongo.server_api import ServerApi
 from dotenv import load_dotenv
 import os
 
-load_dotenv()
+ENV = os.getenv("ENV", "dev")
+
+if ENV == "test":
+    load_dotenv(".env.test")
+else:
+    load_dotenv(".env")
 
 client = None
 db = None

@@ -385,5 +385,34 @@ curl -X POST http://127.0.0.1:9000/notes \
 - upgrading to :-storing refresh tokens in httpOnly cookies to avoid localStorage exposure.
 - Add unit tests and CI to validate endpoints and auth flows.
 
----
+## Performance & reliability
 
+### Redis-powered caching
+- Notes list and individual note responses are cached in Redis for 60 seconds (`src/web/note.py`). Every write (create/update/delete) invalidates the relevant cache keys so the next read hits Mongo again.
+- Cache keys use `notes:user:<user_id>` for list results and `note:<note_id>:user:<user_id>` for single notes; invalidations keep stale data off the feed.
+
+### Sliding-window rate limiting
+- The same Redis instance backs the `SlidingWindowRateLimiter` middleware (`src/core/sliding_rate_limiter.py`) that fences off abuse on `AUTH_*` and `NOTES_*` routes. It keeps per-client sorted sets, trims expired entries, and enforces the limits configured in `src/core/rate_limit_config.py`.
+- Frontends should handle 429 responses by reading the `Retry-After` header and delaying retries.
+
+## Testing
+
+Tests reuse the real Mongo/Redis connections but the fixtures in `tests/conftest.py` drop collections and flush Redis before/after each run so suites start with a blank slate.
+
+Before running any tests in PowerShell, set the helper environment flag:
+
+```powershell
+$env:ENV = "test"
+```
+
+Now run the suites you need:
+
+```powershell
+pytest tests/unit
+pytest tests/integration
+pytest tests/api
+```
+
+- `tests/unit` covers serializers, utilities, and helpers.
+- `tests/integration` exercises services (auth, caching, note persistence) against Mongo/Redis lifecycles.
+- `tests/api` drives the FastAPI app via `httpx.AsyncClient` and the ASGI transport, covering the happy paths for auth and note CRUD while honoring the rate-limiter/caching hooks.
