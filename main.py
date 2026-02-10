@@ -11,6 +11,7 @@ from src.data.database import connect_to_mongo,close_mongo
 from src.web.note import router as note_router
 from src.auth.routes.auth import router as auth_router
 from src.core.exceptions import value_error_handler
+from src.ai.routes import router as ai_router
 
 
 
@@ -32,7 +33,7 @@ app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],  # add both forms if you use either
+    allow_origins=["*"],  # add both forms if you use either
     allow_credentials=True,
     allow_methods=["*"],    # allow OPTIONS, GET, POST, PUT, DELETE, etc.
     allow_headers=["*"],    # allow Content-Type, Authorization, etc.
@@ -40,6 +41,7 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(note_router)
+app.include_router(ai_router)
 
 app.add_exception_handler(ValueError,value_error_handler)
 

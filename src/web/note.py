@@ -53,7 +53,7 @@ async def read_note(note_id:str,current_user=Depends(get_current_user)):
 
     cached=redis_client.get(cache_key)
     if cached:
-        return json.load(cached)
+        return json.loads(cached)
 
 
 
