@@ -45,6 +45,7 @@ JWT_SECRET_KEY=your-very-secret-key
 - `MONGO_URI` — MongoDB connection string (required).
 - `MONGO_DB_NAME` — database name (required).
 - `JWT_SECRET_KEY` — secret used to sign JWT tokens (recommended: long random secret). If not set the app will use `CHANGE_ME` by default — set a secure value for production.
+- `GEMINI_API_KEY` — Google Gemini API key for the `/ai/...` endpoints. If missing, AI calls will raise a `ValueError` before hitting the model.
 
 ---
 
@@ -272,6 +273,47 @@ Example:
 
 ---
 
+## AI assistant endpoints
+
+The new `src/ai` helpers let the backend summarize and proofread a user's notes through the Gemini-2.5 Flash model. Both routes enforce authentication (same `Authorization: Bearer <access_token>` header as `/notes`) and require a valid note id belonging to the caller.
+
+#### POST /ai/notes/{note_id}/summarize
+- Purpose: Analyze the note, respect the prompt rules in `src/ai/prompts.py`, and return a structured summary/key points pair.
+- Request: path parameter `{note_id}` only (no body). The backend fetches the note and streams it to the Gemini API with the `SUMMARIZE_PROMPT`.
+- Response (200):
+
+```json
+{
+  "status": "ok",
+  "summary": "A crisp summary string or null if text is short",
+  "key_points": ["bullet", "list"]
+}
+```
+- If Gemini does not have enough context, `status` equals `"need_more_context"` and both `summary`/`key_points` may be null. Treat this as a signal to prompt the user for additional detail.
+
+#### POST /ai/notes/{note_id}/grammar_check
+- Purpose: Run grammar/copyediting heuristics defined in `GRAMMAR_PROMPT` and surface corrections.
+- Request: path parameter `{note_id}` (notes are read in the same way as the summarize route).
+- Response (200):
+
+```json
+{
+  "corrected_text": "Note text with grammar fixes applied",
+  "issues": [
+    {
+      "original": "bad sentence",
+      "corrected": "better sentence",
+      "reason": "clarity"
+    }
+  ]
+}
+```
+- When no issues are found the `issues` array is empty.
+
+Gemini API traffic depends on the `GEMINI_API_KEY`. If it is missing or invalid, requests will return a 500/ValueError triggered before the OpenAI round-trip. Cache and rate-limit safeguards still apply because the middleware wraps every `/ai/*` call.
+
+---
+
 ## Error handling
 
 The code registers a ValueError handler in `main.py` that will return a structured JSON for ValueError exceptions with status 400. Standard HTTPExceptions are used for 403/404 and will return standard FastAPI error JSON.
@@ -347,6 +389,14 @@ await fetch('/notes', {
 
 6. Validation feedback
    - Rely on returned 400 error body from FastAPI to display field-specific messages. Pydantic errors will include which field failed and why.
+   
+7. AI assistant interactions
+   - POST `/ai/notes/{note_id}/summarize` to surface a short summary and key point array. No body is required beyond the path parameter; the endpoint returns `{ status, summary, key_points }` as documented above. Treat `status === "need_more_context"` as a cue to ask the user for longer text before re-invoking the endpoint.
+   - POST `/ai/notes/{note_id}/grammar_check` to receive corrected note content plus the `issues` array. Play the corrected text back to the user so they can accept/reject edits before saving.
+   
+8. Caching & rate limits
+   - Notes list and detail responses are cached in Redis for 60 seconds (`src/web/note.py`). Expect reads to hit Redis until there is a write (create/update/delete) that invalidates the relevant keys — show a loading state or refresh cache explicitly if the UI permits rapid consecutive actions.
+   - The sliding-window limiter applies to both auth and note routes (`src/core/sliding_rate_limiter.py` + `src/core/rate_limit_config.py`). If you receive a 429, read the `Retry-After` header and retry after that delay to avoid a steady stream of blocked requests.
 
 ---
 
