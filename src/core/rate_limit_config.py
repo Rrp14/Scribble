@@ -37,4 +37,14 @@ RATE_LIMITS = {
         "window": 60,
         "use_user": True,
     },
+    "AI_SUMMARIZE":{
+        "limit": 5,
+        "window": 60,
+        "use_user": True,
+},
+"AI_GRAMMAR":{
+        "limit": 5,
+        "window": 60,
+        "use_user": True,
+}
 }
